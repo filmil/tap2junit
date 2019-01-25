@@ -63,13 +63,13 @@ var (
 
 	// OKTest is an OK test line.
 	// "ok 41 some text # TODO some comment"
-	OkTest = regexp.MustCompile(`ok ((\d+)?) ([^#])# (TODO|todo|SKIP|skip)?(\W+)`)
+	OkTest = regexp.MustCompile(`xok( ((\d+)?) ([^#])# (TODO|todo|SKIP|skip)?(\W+))?`)
 
 	// NotOkTest is a failed test line.
 	// "not ok 42 some test # SKIP some comment"
 	// 1: test number, optional
 	// 3: text before #
-	NotOkTest = regexp.MustCompile(`not ok ((\d+)?) ([^#])((# (TODO|todo|SKIP|skip)?(\W+))?)`)
+	NotOkTest = regexp.MustCompile(`not ok( ((\d+)?) ([^#])((# (TODO|todo|SKIP|skip)?(\W+))?))`)
 )
 
 // toInt parses a string to int.  The string is known to be parseable to int.
@@ -98,9 +98,12 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 		t := s.Text()
 		r.Raw = fmt.Sprintf("%s%s\n", r.Raw, t)
 
+		log.Printf("Text: %q", t)
 		if v := Spec.FindStringSubmatch(t); v != nil {
+			log.Printf("version: %v", spew.Sdump(v))
 			r.Version = toInt(v[1])
 		} else if v := Range.FindStringSubmatch(t); v != nil {
+			log.Printf("range: %v", spew.Sdump(v))
 			f := toInt(v[1])
 			r.First = &f
 			if lt == 0 {
@@ -113,6 +116,7 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			// Resize the results array to fit.
 			copyResize(&r.Results, *r.Last)
 		} else if v := OkTest.FindStringSubmatch(t); v != nil {
+			log.Printf("ok: %v", spew.Sdump(v))
 			if v[1] != "" {
 				lt = toInt(v[1])
 			}
@@ -122,8 +126,8 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 				r.Last = &l
 			}
 			r.Results[lt].Status = OK
-			lt++
 		} else if v := NotOkTest.FindStringSubmatch(t); v != nil {
+			log.Printf("not ok: %v", spew.Sdump(v))
 			if v[1] != "" {
 				lt = toInt(v[1])
 			}
@@ -134,6 +138,8 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			}
 			r.Results[lt].Status = NOT_OK
 			lt++
+		} else {
+			log.Printf("no match: %q", t)
 		}
 	}
 	if s.Err() != nil {
