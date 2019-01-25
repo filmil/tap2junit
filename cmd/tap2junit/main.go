@@ -121,6 +121,19 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 				l := lt
 				r.Last = &l
 			}
+			r.Results[lt].Status = OK
+			lt++
+		} else if v := NotOkTest.FindStringSubmatch(t); v != nil {
+			if v[1] != "" {
+				lt = toInt(v[1])
+			}
+			copyResize(&r.Results, lt)
+			if r.Last == nil || *r.Last < lt {
+				l := lt
+				r.Last = &l
+			}
+			r.Results[lt].Status = NOT_OK
+			lt++
 		}
 	}
 	if s.Err() != nil {
