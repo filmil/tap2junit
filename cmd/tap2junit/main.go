@@ -171,8 +171,7 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 		if v := TestAnnotation.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("annotation: %v", spew.Sdump(v))
 			// This is an annotation for the current test.
-			r.Results[lt-1].Raw = strings.Join([]string{r.Results[lt-1].Raw, t}, "\n")
-			lt++
+			r.Results[lt-1].Raw = strings.Join([]string{r.Results[lt-1].Raw, v[0]}, "\n")
 			continue
 		}
 		glog.V(2).Infof("no match: %q", t)
