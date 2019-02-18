@@ -6,23 +6,24 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/golang/glog"
 )
 
 type Status int
 
 const (
 	// UNKNOWN status represents a test of unknown status.
-	UNKNOWN Status = iota
-	OK
-	NOT_OK
-	SKIPPED
+	UNKNOWN Status = Status(0)
+	OK             = Status(1)
+	NOT_OK         = Status(2)
+	SKIPPED        = Status(3)
 	TODO
 )
 
@@ -53,25 +54,6 @@ type TAPCase struct {
 	Duration time.Duration
 }
 
-var (
-	// Spec is the TAP line representing the version.
-	// "TAP version 13"
-	Spec = regexp.MustCompile(`TAP version (\d+)`)
-	// Range is the range of the tests to run.
-	// "1..42"
-	Range = regexp.MustCompile(`(\d+)\.\.(\d+)`)
-
-	// OKTest is an OK test line.
-	// "ok 41 some text # TODO some comment"
-	OkTest = regexp.MustCompile(`xok( ((\d+)?) ([^#])# (TODO|todo|SKIP|skip)?(\W+))?`)
-
-	// NotOkTest is a failed test line.
-	// "not ok 42 some test # SKIP some comment"
-	// 1: test number, optional
-	// 3: text before #
-	NotOkTest = regexp.MustCompile(`not ok( ((\d+)?) ([^#])((# (TODO|todo|SKIP|skip)?(\W+))?))`)
-)
-
 // toInt parses a string to int.  The string is known to be parseable to int.
 func toInt(s string) int {
 	i, _ := strconv.Atoi(s)
@@ -87,6 +69,21 @@ func copyResize(dest *[]TAPResult, newSize int) {
 	*dest = new
 }
 
+// StatusFrom returns a Status from a supplied string.
+func StatusFrom(str string, def Status) Status {
+	switch str {
+	case "TODO":
+		fallthrough
+	case "todo":
+		return TODO
+	case "SKIP":
+		fallthrough
+	case "skip":
+		return SKIPPED
+	}
+	return def
+}
+
 // ReadTAP parses the contents of i into a TAPResult.
 func ReadTAP(i io.Reader) (TAPCase, error) {
 	var (
@@ -98,12 +95,22 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 		t := s.Text()
 		r.Raw = fmt.Sprintf("%s%s\n", r.Raw, t)
 
-		log.Printf("Text: %q", t)
+		glog.V(2).Infof("Text: %q", t)
+
+		// Spec is the TAP line representing the version.
+		// "TAP version 13"
+		var Spec = regexp.MustCompile(`TAP version (\d+)`)
 		if v := Spec.FindStringSubmatch(t); v != nil {
-			log.Printf("version: %v", spew.Sdump(v))
+			glog.V(2).Infof("version: %v", spew.Sdump(v))
 			r.Version = toInt(v[1])
-		} else if v := Range.FindStringSubmatch(t); v != nil {
-			log.Printf("range: %v", spew.Sdump(v))
+			continue
+		}
+
+		// Range is the range of the tests to run.
+		// "1..42"
+		var Range = regexp.MustCompile(`(\d+)\.\.(\d+)`)
+		if v := Range.FindStringSubmatch(t); v != nil {
+			glog.V(2).Infof("range: %v", spew.Sdump(v))
 			f := toInt(v[1])
 			r.First = &f
 			if lt == 0 {
@@ -115,32 +122,60 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			r.Last = &l
 			// Resize the results array to fit.
 			copyResize(&r.Results, *r.Last)
-		} else if v := OkTest.FindStringSubmatch(t); v != nil {
-			log.Printf("ok: %v", spew.Sdump(v))
-			if v[1] != "" {
-				lt = toInt(v[1])
-			}
-			copyResize(&r.Results, lt)
-			if r.Last == nil || *r.Last < lt {
-				l := lt
-				r.Last = &l
-			}
-			r.Results[lt].Status = OK
-		} else if v := NotOkTest.FindStringSubmatch(t); v != nil {
-			log.Printf("not ok: %v", spew.Sdump(v))
-			if v[1] != "" {
-				lt = toInt(v[1])
-			}
-			copyResize(&r.Results, lt)
-			if r.Last == nil || *r.Last < lt {
-				l := lt
-				r.Last = &l
-			}
-			r.Results[lt].Status = NOT_OK
-			lt++
-		} else {
-			log.Printf("no match: %q", t)
+			continue
 		}
+
+		// OKTest is an OK test line.
+		// "ok 41 some text # TODO some comment"
+		var OKTest = regexp.MustCompile(`^ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip)?(.*))?)`)
+
+		// "42 ok Some comment"
+		// Regex analysis using https://regex101.com
+		if v := OKTest.FindStringSubmatch(t); v != nil {
+			glog.V(2).Infof("ok: %v", spew.Sdump(v))
+			tiStr := v[2]
+			if tiStr != "" {
+				lt = toInt(tiStr)
+			}
+			copyResize(&r.Results, lt)
+			if r.Last == nil || *r.Last < lt {
+				l := lt
+				r.Last = &l
+			}
+			r.Results[lt-1].Status = StatusFrom(v[7], OK)
+			r.Results[lt-1].Raw = v[1]
+			continue
+		}
+
+		// NotOkTest is a failed test line.
+		// "not ok 42 some test # SKIP some comment"
+		// 1: test number, optional
+		// 3: text before #
+		var NotOKTest = regexp.MustCompile(`^not ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip)?(.*))?)`)
+		if v := NotOKTest.FindStringSubmatch(t); v != nil {
+			glog.V(2).Infof("not ok: %v", spew.Sdump(v))
+			tiStr := v[2]
+			if tiStr != "" {
+				lt = toInt(tiStr)
+			}
+			copyResize(&r.Results, lt)
+			if r.Last == nil || *r.Last < lt {
+				l := lt
+				r.Last = &l
+			}
+			r.Results[lt-1].Status = StatusFrom(v[7], NOT_OK)
+			r.Results[lt-1].Raw = v[1]
+			continue
+		}
+		var TestAnnotation = regexp.MustCompile(`^#(\s+)?(.+)?`)
+		if v := TestAnnotation.FindStringSubmatch(t); v != nil {
+			glog.V(2).Infof("annotation: %v", spew.Sdump(v))
+			// This is an annotation for the current test.
+			r.Results[lt-1].Raw = strings.Join([]string{r.Results[lt-1].Raw, t}, "\n")
+			lt++
+			continue
+		}
+		glog.V(2).Infof("no match: %q", t)
 	}
 	if s.Err() != nil {
 		return r, s.Err()
@@ -149,9 +184,8 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 }
 
 func main() {
-	r, err := ReadTAP(os.Stdin)
+	_, err := ReadTAP(os.Stdin)
 	if err != nil {
-		log.Fatalf("unexpected error: %v", err)
+		glog.Fatalf("unexpected error: %v", err)
 	}
-	fmt.Printf("%v", spew.Sdump(r))
 }
