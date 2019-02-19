@@ -1,4 +1,4 @@
-module github.com/filmil/tap2junit
+module github.com/filmil/gotap2junit
 
 require (
 	github.com/davecgh/go-spew v1.1.1
