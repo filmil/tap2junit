@@ -205,9 +205,9 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			continue
 		}
 
-		var BailOut = regexp.MustCompile("Bail out!.*")
+		var BailOut = regexp.MustCompile(`Bail out!\s*(.*)`)
 		if v := BailOut.FindStringSubmatch(t); v != nil {
-			glog.V(3).Infof("Found bail out!")
+			glog.V(3).Infof("Found bail out! text: %q", v[1])
 			break
 		}
 		glog.V(2).Infof("no match: %q", t)
