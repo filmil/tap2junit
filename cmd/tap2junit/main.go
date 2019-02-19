@@ -84,11 +84,17 @@ func StatusFrom(str string, def Status) Status {
 	return def
 }
 
+// parser contains the parser status
+type parser struct {
+	// last test read
+	lt int
+}
+
 // ReadTAP parses the contents of i into a TAPResult.
 func ReadTAP(i io.Reader) (TAPCase, error) {
 	var (
 		r  TAPCase = TAPCase{Version: 12}
-		lt int     // last test read
+		ps parser
 	)
 	s := bufio.NewScanner(i)
 	for s.Scan() {
@@ -113,10 +119,10 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			glog.V(2).Infof("range: %v", spew.Sdump(v))
 			f := toInt(v[1])
 			r.First = &f
-			if lt == 0 {
+			if ps.lt == 0 {
 				// If we haven't yet scanned any tests, update the test counter:
 				// next unnumbered test result will be for test lt.
-				lt = f
+				ps.lt = f
 			}
 			l := toInt(v[2])
 			r.Last = &l
@@ -135,15 +141,17 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			glog.V(2).Infof("ok: %v", spew.Sdump(v))
 			tiStr := v[2]
 			if tiStr != "" {
-				lt = toInt(tiStr)
+				ps.lt = toInt(tiStr)
+			} else {
+				ps.lt++
 			}
-			copyResize(&r.Results, lt)
-			if r.Last == nil || *r.Last < lt {
-				l := lt
+			copyResize(&r.Results, ps.lt)
+			if r.Last == nil || *r.Last < ps.lt {
+				l := ps.lt
 				r.Last = &l
 			}
-			r.Results[lt-1].Status = StatusFrom(v[7], OK)
-			r.Results[lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Status = StatusFrom(v[7], OK)
+			r.Results[ps.lt-1].Raw = v[1]
 			continue
 		}
 
@@ -156,22 +164,44 @@ func ReadTAP(i io.Reader) (TAPCase, error) {
 			glog.V(2).Infof("not ok: %v", spew.Sdump(v))
 			tiStr := v[2]
 			if tiStr != "" {
-				lt = toInt(tiStr)
+				ps.lt = toInt(tiStr)
+			} else {
+				ps.lt++
 			}
-			copyResize(&r.Results, lt)
-			if r.Last == nil || *r.Last < lt {
-				l := lt
+			copyResize(&r.Results, ps.lt)
+			if r.Last == nil || *r.Last < ps.lt {
+				l := ps.lt
 				r.Last = &l
 			}
-			r.Results[lt-1].Status = StatusFrom(v[7], NOT_OK)
-			r.Results[lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Status = StatusFrom(v[7], NOT_OK)
+			r.Results[ps.lt-1].Raw = v[1]
 			continue
 		}
+
+		// An annotation is attached to the "current" test.
 		var TestAnnotation = regexp.MustCompile(`^#(\s+)?(.+)?`)
 		if v := TestAnnotation.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("annotation: %v", spew.Sdump(v))
+			line := v[0]
 			// This is an annotation for the current test.
-			r.Results[lt-1].Raw = strings.Join([]string{r.Results[lt-1].Raw, v[0]}, "\n")
+			r.Results[ps.lt-1].Raw = strings.Join([]string{r.Results[ps.lt-1].Raw, line}, "\n")
+
+			// Extension parsing
+			if strings.HasPrefix(line, "# TAP2JUNIT:") {
+				line = strings.TrimPrefix(line, "# TAP2JUNIT:")
+				line = strings.TrimSpace(line)
+			}
+			glog.V(2).Infof("extension: %v", line)
+			if strings.HasPrefix(line, "Duration:") {
+				line = strings.TrimPrefix(line, "Duration:")
+				line = strings.TrimSpace(line)
+
+				d, err := time.ParseDuration(line)
+				if err != nil {
+					glog.Warningf("could not parse duration: %v", line)
+				}
+				r.Results[ps.lt-1].Duration = d
+			}
 			continue
 		}
 		glog.V(2).Infof("no match: %q", t)
