@@ -30,6 +30,7 @@ type Testsuites struct {
 	NumFailures int         `xml:"failures,attr"`
 	Time        DurationSec `xml:"time,attr"`
 	Suites      []Suite
+	Data        string `xml:",cdata"`
 }
 
 type Suite struct {
