@@ -95,7 +95,7 @@ ok 2 Hello world # TODO not done yet
 						Status: UNKNOWN,
 					},
 					{
-						Status: OK,
+						Status: TODO,
 						Raw:    " 2 Hello world # TODO not done yet",
 					},
 				},
@@ -160,6 +160,27 @@ ok Unnumbered test
 						// 8, this test was not ran.
 						Status: UNKNOWN,
 					},
+				},
+			},
+		},
+		{
+			name: "Bail out",
+			input: `
+1..5
+ok 2 Hello world # Some comment
+Bail out! Some justification.
+ok 3 Belated result
+`,
+			expected: TAPCase{
+				Version: 12,
+				First:   ptr(1),
+				Last:    ptr(5),
+				Results: []TAPResult{
+					{Status: UNKNOWN},
+					{Status: OK, Raw: " 2 Hello world # Some comment"},
+					{Status: UNKNOWN},
+					{Status: UNKNOWN},
+					{Status: UNKNOWN},
 				},
 			},
 		},
