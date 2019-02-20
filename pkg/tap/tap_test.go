@@ -26,15 +26,18 @@ func duration(s string) time.Duration {
 func TestOutput(t *testing.T) {
 	tests := []struct {
 		name     string
+		testName string
 		input    string
 		expected Case
 	}{
 		{
-			name: "Basic",
+			name:     "Basic",
+			testName: "named_test",
 			input: `
 `,
 			expected: Case{
 				Version: 12,
+				Name:    "named_test",
 			},
 		},
 		{
@@ -64,6 +67,7 @@ func TestOutput(t *testing.T) {
 			input: `
 1..2
 ok 2 Hello world # Some comment
+# This is part of test 2
 `,
 			expected: Case{
 				Version: 12,
@@ -75,9 +79,16 @@ ok 2 Hello world # Some comment
 					},
 					{
 						Status: PASSED,
-						Raw:    " 2 Hello world # Some comment",
+						Header: "ok 2 Hello world # Some comment",
+						Raw: ` 2 Hello world # Some comment
+# This is part of test 2`,
 					},
 				},
+				Raw: `
+1..2
+ok 2 Hello world # Some comment
+# This is part of test 2
+`,
 			},
 		},
 		{
@@ -97,8 +108,13 @@ ok 2 Hello world # TODO not done yet
 					{
 						Status: TODO,
 						Raw:    " 2 Hello world # TODO not done yet",
+						Header: "ok 2 Hello world # TODO not done yet",
 					},
 				},
+				Raw: `
+1..2
+ok 2 Hello world # TODO not done yet
+`,
 			},
 		},
 		{
@@ -109,6 +125,7 @@ ok 2 Hello world # Some comment
 ok 3 Third test # SKIP not implemented yet
 ok 4 Fourth test # TODO this is to be done
 not ok 5 Fifth test # Failed here
+# Part of fifth test
 not ok 6 Sixth test # SKIP Failed here
 # Some annotation
 # TAP2JUNIT: Duration: 10s
@@ -126,18 +143,23 @@ ok Unnumbered test
 					{
 						Status: PASSED,
 						Raw:    " 2 Hello world # Some comment",
+						Header: "ok 2 Hello world # Some comment",
 					},
 					{
 						Status: SKIPPED,
 						Raw:    " 3 Third test # SKIP not implemented yet",
+						Header: "ok 3 Third test # SKIP not implemented yet",
 					},
 					{
 						Status: TODO,
 						Raw:    " 4 Fourth test # TODO this is to be done",
+						Header: "ok 4 Fourth test # TODO this is to be done",
 					},
 					{
 						Status: FAILED,
-						Raw:    " 5 Fifth test # Failed here",
+						Raw: ` 5 Fifth test # Failed here
+# Part of fifth test`,
+						Header: `not ok 5 Fifth test # Failed here`,
 					},
 					{
 						// 5
@@ -145,16 +167,19 @@ ok Unnumbered test
 						Raw: " 6 Sixth test # SKIP Failed here\n" +
 							"# Some annotation\n" +
 							"# TAP2JUNIT: Duration: 10s",
+						Header:   "not ok 6 Sixth test # SKIP Failed here",
 						Duration: duration("10s"),
 					},
 					{
 						Status: TODO,
 						Raw:    " 7 Seventh test # TODO Failed here",
+						Header: "not ok 7 Seventh test # TODO Failed here",
 					},
 					{
 						// 7
 						Status: PASSED,
 						Raw:    " Unnumbered test",
+						Header: "ok Unnumbered test",
 					},
 					{
 						// 8, this test was not ran.
@@ -177,7 +202,8 @@ ok 3 Belated result
 				Last:    ptr(5),
 				Results: []Result{
 					{Status: UNKNOWN},
-					{Status: PASSED, Raw: " 2 Hello world # Some comment"},
+					{Status: PASSED, Raw: " 2 Hello world # Some comment",
+						Header: "ok 2 Hello world # Some comment"},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
@@ -191,7 +217,9 @@ ok 3 Belated result
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			r := strings.NewReader(test.input)
 			defer func() {
 				if r := recover(); r != nil {
@@ -199,7 +227,7 @@ ok 3 Belated result
 					debug.PrintStack()
 				}
 			}()
-			actual, err := Read(r)
+			actual, err := Read(r, test.testName)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

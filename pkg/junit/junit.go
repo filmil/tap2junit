@@ -24,8 +24,8 @@ func (d DurationSec) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
 // Testsuites is a definition of the test suites.
 type Testsuites struct {
 	XMLName     xml.Name    `xml:"testsuites"`
-	ID          string      `xml:"id,attr"`
-	Name        string      `xml:"name,attr"`
+	ID          string      `xml:"id,attr,omitempty"`
+	Name        string      `xml:"name,attr,omitempty"`
 	NumTests    int         `xml:"tests,attr"`
 	NumFailures int         `xml:"failures,attr"`
 	Time        DurationSec `xml:"time,attr"`

@@ -37,6 +37,8 @@ type Result struct {
 	Status Status
 	// Duration is how long the test took.
 	Duration time.Duration
+	// Header is the first line of the test, complete.
+	Header string
 	// Raw is the raw content of the test result dump.
 	Raw string
 }
@@ -46,6 +48,8 @@ type Case struct {
 	// Version is the TAP test specification.  If unset, it is a specification
 	// earlier than version 13.
 	Version int
+	// Name is the unique name of the test.
+	Name string
 	// First is the first test that was executed. Optional.
 	First *int
 	// Last is the last test. Optional.
@@ -94,10 +98,10 @@ type parser struct {
 	lt int
 }
 
-// Read parses the contents of i into a Result.
-func Read(i io.Reader) (Case, error) {
+// Read parses the contents of i into a Result. name is a given test name.
+func Read(i io.Reader, name string) (Case, error) {
 	var (
-		r  Case = Case{Version: 12}
+		r  Case = Case{Version: 12, Name: name}
 		ps parser
 	)
 	s := bufio.NewScanner(i)
@@ -157,6 +161,7 @@ func Read(i io.Reader) (Case, error) {
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], PASSED)
 			r.Results[ps.lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Header = t
 			continue
 		}
 
@@ -181,6 +186,7 @@ func Read(i io.Reader) (Case, error) {
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], FAILED)
 			r.Results[ps.lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Header = t
 			continue
 		}
 
