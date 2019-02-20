@@ -34,6 +34,7 @@ func run(r io.Reader, w io.Writer, name string) error {
 }
 
 func main() {
+	flag.Parse()
 	if err := run(os.Stdin, os.Stdout, *testName); err != nil {
 		glog.Fatalf("unexpected error: %v", err)
 	}
