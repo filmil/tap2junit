@@ -1,7 +1,5 @@
 # TAP-to-jUnit converter
 
-[![CircleCI Build Status](https://circleci.com/gh/circleci/githubcom-filmil-tap2junit.svg?style=shield)](https://circleci.com/gh/circleci/cci-demo-docker) [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/circleci/cci-demo-react/master/LICENSE)
-
 This is a go implementation of a converter from the TAP test format (from
 www.testanything.org) to the jUnit format.
 
