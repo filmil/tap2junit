@@ -11,9 +11,16 @@ good functionality.
 
 # Installation
 
+```
 go get github.com/filmil/tap2junit
 go install github.com/filmil/tap2junit/...
+```
+
+# Testing
+
+```
 go test github.com/filmil/tap2junit/...
+```
 
 # Features
 
