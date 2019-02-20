@@ -98,8 +98,18 @@ type parser struct {
 	lt int
 }
 
-// Read parses the contents of i into a Result. name is a given test name.
-func Read(i io.Reader, name string) (Case, error) {
+func joinNonempty(one, two string) string {
+	if one == "" {
+		return two
+	}
+	return strings.Join([]string{one, two}, "\n")
+}
+
+// Read parses the contents of i into a Result. name is a given test name.  If
+// reorder is set, the Duration line will be added to the next test instead of
+// the current, to work around issue
+// https://github.com/bats-core/bats-core/issues/187
+func Read(i io.Reader, name string, reorder bool) (Case, error) {
 	var (
 		r  Case = Case{Version: 12, Name: name}
 		ps parser
@@ -127,11 +137,6 @@ func Read(i io.Reader, name string) (Case, error) {
 			glog.V(2).Infof("range: %v", spew.Sdump(v))
 			f := toInt(v[1])
 			r.First = &f
-			if ps.lt == 0 {
-				// If we haven't yet scanned any tests, update the test counter:
-				// next unnumbered test result will be for test lt.
-				ps.lt = f
-			}
 			l := toInt(v[2])
 			r.Last = &l
 			// Resize the results array to fit.
@@ -160,7 +165,7 @@ func Read(i io.Reader, name string) (Case, error) {
 				r.Last = &l
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], PASSED)
-			r.Results[ps.lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Raw = joinNonempty(r.Results[ps.lt-1].Raw, v[1])
 			r.Results[ps.lt-1].Header = t
 			continue
 		}
@@ -185,7 +190,7 @@ func Read(i io.Reader, name string) (Case, error) {
 				r.Last = &l
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], FAILED)
-			r.Results[ps.lt-1].Raw = v[1]
+			r.Results[ps.lt-1].Raw = joinNonempty(r.Results[ps.lt-1].Raw, v[1])
 			r.Results[ps.lt-1].Header = t
 			continue
 		}
@@ -195,25 +200,30 @@ func Read(i io.Reader, name string) (Case, error) {
 		if v := TestAnnotation.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("annotation: %v", spew.Sdump(v))
 			line := v[0]
-			// This is an annotation for the current test.
-			r.Results[ps.lt-1].Raw = strings.Join([]string{r.Results[ps.lt-1].Raw, line}, "\n")
 
 			// Extension parsing
 			if strings.HasPrefix(line, "# TAP2JUNIT:") {
 				line = strings.TrimPrefix(line, "# TAP2JUNIT:")
 				line = strings.TrimSpace(line)
 			}
-			glog.V(2).Infof("extension: %v", line)
+			var fixup int
+			glog.V(2).Infof("extension: %q", line)
 			if strings.HasPrefix(line, "Duration:") {
 				line = strings.TrimPrefix(line, "Duration:")
 				line = strings.TrimSpace(line)
+				if reorder {
+					fixup = 1
+				}
+				glog.V(2).Infof("extension: %q, fixup: %v", line, fixup)
 
 				d, err := time.ParseDuration(line)
 				if err != nil {
 					glog.Warningf("could not parse duration: %v", line)
 				}
-				r.Results[ps.lt-1].Duration = d
+				r.Results[ps.lt+fixup-1].Duration = d
 			}
+			r.Results[ps.lt+fixup-1].Raw = joinNonempty(r.Results[ps.lt+fixup-1].Raw, v[0])
+			glog.Infof("results: %+v", r.Results)
 			continue
 		}
 

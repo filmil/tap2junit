@@ -1,6 +1,7 @@
 package tap
 
 import (
+	"flag"
 	"fmt"
 	"runtime/debug"
 	"strings"
@@ -28,6 +29,7 @@ func TestOutput(t *testing.T) {
 		name     string
 		testName string
 		input    string
+		reorder  bool
 		expected Case
 	}{
 		{
@@ -63,7 +65,8 @@ func TestOutput(t *testing.T) {
 			},
 		},
 		{
-			name: "One OK test with comment",
+			name:    "One OK test with comment",
+			reorder: true,
 			input: `
 1..2
 ok 2 Hello world # Some comment
@@ -87,6 +90,47 @@ ok 2 Hello world # Some comment
 				Raw: `
 1..2
 ok 2 Hello world # Some comment
+# This is part of test 2
+`,
+			},
+		},
+		{
+			name:    "Reorder timing report",
+			reorder: true,
+			input: `
+1..2
+# TAP2JUNIT: Duration: 4.3ms
+ok 1 Hello world # Some comment
+# This is part of test 1
+ok 2 Test 2
+# This is part of test 2
+`,
+			expected: Case{
+				Version: 12,
+				First:   ptr(1),
+				Last:    ptr(2),
+				Results: []Result{
+					{
+						Status: PASSED,
+						Header: "ok 1 Hello world # Some comment",
+						Raw: `# TAP2JUNIT: Duration: 4.3ms
+ 1 Hello world # Some comment
+# This is part of test 1`,
+						Duration: 4300 * time.Microsecond,
+					},
+					{
+						Status: PASSED,
+						Header: "ok 2 Test 2",
+						Raw: ` 2 Test 2
+# This is part of test 2`,
+					},
+				},
+				Raw: `
+1..2
+# TAP2JUNIT: Duration: 4.3ms
+ok 1 Hello world # Some comment
+# This is part of test 1
+ok 2 Test 2
 # This is part of test 2
 `,
 			},
@@ -211,6 +255,7 @@ ok 3 Belated result
 			},
 		},
 	}
+	flag.Parse()
 
 	opts := cmp.Options{
 		cmpopts.IgnoreFields(Case{}, "Raw"),
@@ -227,7 +272,7 @@ ok 3 Belated result
 					debug.PrintStack()
 				}
 			}()
-			actual, err := Read(r, test.testName)
+			actual, err := Read(r, test.testName, test.reorder)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
