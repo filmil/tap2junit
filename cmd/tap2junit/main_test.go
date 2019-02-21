@@ -25,9 +25,9 @@ not ok 2 That test # comment 2
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
    <testsuites tests="2" failures="1" time="30.000">
       <testsuite id="7cc84235ce3aaeab160cebf213fdff2a0d92dcb4e6304dee5fb2762673f107f1" name="named_test" tests="2" failures="1" time="30.000">
-         <testcase id="ba9ec74f753775734860835065bd83505683bc030a628250cbf4695e45c80c60" name="ok 1 This test # comment 1" time="10.000"></testcase>
-         <testcase id="3a2718564b85de1cafbef2ac551beab4246645a25db12e8ad1fbd7abd709265c" name="not ok 2 That test # comment 2" time="20.000">
-            <failure message="not ok 2 That test # comment 2" type="TestFailed"><![CDATA[ 2 That test # comment 2
+         <testcase id="d32c977c8ba0374c3c0e821206cc08d19a041daa9caec8c7373de9175b1189e8" name="This test" time="10.000"></testcase>
+         <testcase id="b3b1d666dfa8d2b061fc60641b53d49cd8df01ac940265b168e808c28e66a11e" name="That test" time="20.000">
+            <failure message="That test" type="TestFailed"><![CDATA[ 2 That test # comment 2
 # TAP2JUNIT: Duration: 20s]]></failure>
          </testcase>
       </testsuite>
@@ -45,9 +45,9 @@ not ok 2 That test # comment 2
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
    <testsuites tests="2" failures="1" time="30.000">
       <testsuite id="7cc84235ce3aaeab160cebf213fdff2a0d92dcb4e6304dee5fb2762673f107f1" name="named_test" tests="2" failures="1" time="30.000">
-         <testcase id="ba9ec74f753775734860835065bd83505683bc030a628250cbf4695e45c80c60" name="ok 1 This test # comment 1" time="20.000"></testcase>
-         <testcase id="3a2718564b85de1cafbef2ac551beab4246645a25db12e8ad1fbd7abd709265c" name="not ok 2 That test # comment 2" time="10.000">
-            <failure message="not ok 2 That test # comment 2" type="TestFailed"><![CDATA[# TAP2JUNIT: Duration: 10s
+         <testcase id="d32c977c8ba0374c3c0e821206cc08d19a041daa9caec8c7373de9175b1189e8" name="This test" time="20.000"></testcase>
+         <testcase id="b3b1d666dfa8d2b061fc60641b53d49cd8df01ac940265b168e808c28e66a11e" name="That test" time="10.000">
+            <failure message="That test" type="TestFailed"><![CDATA[# TAP2JUNIT: Duration: 10s
  2 That test # comment 2]]></failure>
          </testcase>
       </testsuite>

@@ -15,7 +15,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// Status is the test status type.
+//d Status is the test status type.
 type Status int
 
 const (
@@ -166,7 +166,7 @@ func Read(i io.Reader, name string, reorder bool) (Case, error) {
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], PASSED)
 			r.Results[ps.lt-1].Raw = joinNonempty(r.Results[ps.lt-1].Raw, v[1])
-			r.Results[ps.lt-1].Header = t
+			r.Results[ps.lt-1].Header = strings.Trim(v[4], " ")
 			continue
 		}
 
@@ -191,7 +191,7 @@ func Read(i io.Reader, name string, reorder bool) (Case, error) {
 			}
 			r.Results[ps.lt-1].Status = StatusFrom(v[7], FAILED)
 			r.Results[ps.lt-1].Raw = joinNonempty(r.Results[ps.lt-1].Raw, v[1])
-			r.Results[ps.lt-1].Header = t
+			r.Results[ps.lt-1].Header = strings.Trim(v[4], " ")
 			continue
 		}
 

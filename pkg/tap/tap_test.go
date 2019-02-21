@@ -82,7 +82,7 @@ ok 2 Hello world # Some comment
 					},
 					{
 						Status: PASSED,
-						Header: "ok 2 Hello world # Some comment",
+						Header: "Hello world",
 						Raw: ` 2 Hello world # Some comment
 # This is part of test 2`,
 					},
@@ -112,7 +112,7 @@ ok 2 Test 2
 				Results: []Result{
 					{
 						Status: PASSED,
-						Header: "ok 1 Hello world # Some comment",
+						Header: "Hello world",
 						Raw: `# TAP2JUNIT: Duration: 4.3ms
  1 Hello world # Some comment
 # This is part of test 1`,
@@ -120,7 +120,7 @@ ok 2 Test 2
 					},
 					{
 						Status: PASSED,
-						Header: "ok 2 Test 2",
+						Header: "Test 2",
 						Raw: ` 2 Test 2
 # This is part of test 2`,
 					},
@@ -152,7 +152,7 @@ ok 2 Hello world # TODO not done yet
 					{
 						Status: TODO,
 						Raw:    " 2 Hello world # TODO not done yet",
-						Header: "ok 2 Hello world # TODO not done yet",
+						Header: "Hello world",
 					},
 				},
 				Raw: `
@@ -187,23 +187,23 @@ ok Unnumbered test
 					{
 						Status: PASSED,
 						Raw:    " 2 Hello world # Some comment",
-						Header: "ok 2 Hello world # Some comment",
+						Header: "Hello world",
 					},
 					{
 						Status: SKIPPED,
 						Raw:    " 3 Third test # SKIP not implemented yet",
-						Header: "ok 3 Third test # SKIP not implemented yet",
+						Header: "Third test",
 					},
 					{
 						Status: TODO,
 						Raw:    " 4 Fourth test # TODO this is to be done",
-						Header: "ok 4 Fourth test # TODO this is to be done",
+						Header: "Fourth test",
 					},
 					{
 						Status: FAILED,
 						Raw: ` 5 Fifth test # Failed here
 # Part of fifth test`,
-						Header: `not ok 5 Fifth test # Failed here`,
+						Header: `Fifth test`,
 					},
 					{
 						// 5
@@ -211,19 +211,19 @@ ok Unnumbered test
 						Raw: " 6 Sixth test # SKIP Failed here\n" +
 							"# Some annotation\n" +
 							"# TAP2JUNIT: Duration: 10s",
-						Header:   "not ok 6 Sixth test # SKIP Failed here",
+						Header:   "Sixth test",
 						Duration: duration("10s"),
 					},
 					{
 						Status: TODO,
 						Raw:    " 7 Seventh test # TODO Failed here",
-						Header: "not ok 7 Seventh test # TODO Failed here",
+						Header: "Seventh test",
 					},
 					{
 						// 7
 						Status: PASSED,
 						Raw:    " Unnumbered test",
-						Header: "ok Unnumbered test",
+						Header: "Unnumbered test",
 					},
 					{
 						// 8, this test was not ran.
@@ -247,7 +247,7 @@ ok 3 Belated result
 				Results: []Result{
 					{Status: UNKNOWN},
 					{Status: PASSED, Raw: " 2 Hello world # Some comment",
-						Header: "ok 2 Hello world # Some comment"},
+						Header: "Hello world"},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
