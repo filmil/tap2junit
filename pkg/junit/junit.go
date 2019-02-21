@@ -57,7 +57,7 @@ type Failure struct {
 	XMLName xml.Name `xml:"failure"`
 	Message string   `xml:"message,attr"`
 	Type    string   `xml:"type,attr"`
-	Text    string   `xml:",chardata"`
+	Text    string   `xml:",cdata"`
 }
 
 // Write writes out the test suites information into the supplied writer.
