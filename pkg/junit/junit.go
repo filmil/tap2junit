@@ -61,9 +61,17 @@ type Failure struct {
 }
 
 // Write writes out the test suites information into the supplied writer.
-func Write(suites Testsuites, w io.Writer) error {
+func Write(suites Testsuites, w io.Writer, singleSuite bool) error {
 	e := xml.NewEncoder(w)
 	e.Indent("   ", "   ")
-	fmt.Fprintf(w, xml.Header)
+	if _, err := fmt.Fprintf(w, xml.Header); err != nil {
+		return err
+	}
+	if singleSuite {
+		if lenSuites := len(suites.Suites); lenSuites != 1 {
+			return fmt.Errorf("cannot write a singleSuite unless there is exactly one suite (%d)", lenSuites)
+		}
+		return e.Encode(suites.Suites[0])
+	}
 	return e.Encode(suites)
 }

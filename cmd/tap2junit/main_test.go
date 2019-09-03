@@ -7,12 +7,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestMain(t *testing.T) {
+func TestCli(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
-		reorder  bool
+		name        string
+		input       string
+		singleSuite bool
+		expected    string
+		reorder     bool
 	}{
 		{
 			name: "Basic",
@@ -32,6 +33,24 @@ not ok 2 That test # comment 2
          </testcase>
       </testsuite>
    </testsuites>`,
+		},
+		{
+			name: "Basic single",
+			input: `1..2
+ok 1 This test # comment 1
+# TAP2JUNIT: Duration: 10s
+not ok 2 That test # comment 2
+# TAP2JUNIT: Duration: 20s
+`,
+			singleSuite: true,
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+   <testsuite id="7cc84235ce3aaeab160cebf213fdff2a0d92dcb4e6304dee5fb2762673f107f1" name="named_test" tests="2" failures="1" time="30.000">
+      <testcase id="d32c977c8ba0374c3c0e821206cc08d19a041daa9caec8c7373de9175b1189e8" name="This test" time="10.000"></testcase>
+      <testcase id="b3b1d666dfa8d2b061fc60641b53d49cd8df01ac940265b168e808c28e66a11e" name="That test" time="20.000">
+         <failure message="That test" type="TestFailed"><![CDATA[ 2 That test # comment 2
+# TAP2JUNIT: Duration: 20s]]></failure>
+      </testcase>
+   </testsuite>`,
 		},
 		{
 			name:    "Reordered",
@@ -59,7 +78,9 @@ not ok 2 That test # comment 2
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			var b strings.Builder
-			run(strings.NewReader(test.input), &b, "named_test", test.reorder)
+			if err := run(strings.NewReader(test.input), &b, "named_test", test.reorder, test.singleSuite); err != nil {
+				t.Fatal(err)
+			}
 			actual := strings.Split(b.String(), "\n")
 			exp := strings.Split(test.expected, "\n")
 			if !cmp.Equal(exp, actual) {
