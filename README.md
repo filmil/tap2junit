@@ -1,5 +1,7 @@
 # TAP-to-jUnit converter
 
+![Travis CI status][https://travis-ci.com/filmil/tap2junit.svg?branch=master]
+
 This is a go implementation of a converter from the TAP test format (from
 www.testanything.org) to the jUnit format.
 
