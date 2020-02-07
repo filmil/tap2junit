@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/filmil/tap2junit/pkg/tap"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -14,6 +15,7 @@ func TestCli(t *testing.T) {
 		singleSuite bool
 		expected    string
 		reorder     bool
+		reorderAll  bool
 	}{
 		{
 			name: "Basic",
@@ -72,13 +74,36 @@ not ok 2 That test # comment 2
       </testsuite>
    </testsuites>`,
 		},
+		{
+			name:    "Reorder all with failures",
+			reorder: true,
+			input: `1..1
+# This should be reordered
+# And this too
+not ok 1 Hello
+`,
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+   <testsuites tests="1" failures="1" time="0.000">
+      <testsuite id="7cc84235ce3aaeab160cebf213fdff2a0d92dcb4e6304dee5fb2762673f107f1" name="named_test" tests="1" failures="1" time="0.000">
+         <testcase id="185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969" name="Hello" time="0.000">
+            <failure message="Hello" type="TestFailed"><![CDATA[# This should be reordered
+# And this too
+ 1 Hello]]></failure>
+         </testcase>
+      </testsuite>
+   </testsuites>`,
+		},
 	}
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			var b strings.Builder
-			if err := run(strings.NewReader(test.input), &b, "named_test", test.reorder, test.singleSuite); err != nil {
+			opts := tap.ReadOpt{
+				Name:       "named_test",
+				ReorderAll: test.reorder,
+			}
+			if err := run(strings.NewReader(test.input), &b, opts, test.singleSuite); err != nil {
 				t.Fatal(err)
 			}
 			actual := strings.Split(b.String(), "\n")

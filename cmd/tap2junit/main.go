@@ -17,11 +17,12 @@ import (
 var (
 	testName        = flag.String("test_name", "unnamed_test", "Sets the test name to use")
 	reorderDuration = flag.Bool("reorder_duration", false, "If set, will reorder durations to work around https://github.com/bats-core/bats-core/issues/187")
+	reorderAll      = flag.Bool("reorder_all", false, "If set, will reorder all test lines to work around https://github.com/bats-core/bats-core/issues/187")
 	singleSuite     = flag.Bool("single_suite", false, "If set, will output only the <testsuite> as top-level tag; not <testsuites>")
 )
 
-func run(r io.Reader, w io.Writer, name string, reorderDuration, singleSuite bool) error {
-	t, err := tap.Read(r, name, reorderDuration)
+func run(r io.Reader, w io.Writer, opts tap.ReadOpt, singleSuite bool) error {
+	t, err := tap.Read(r, opts)
 	if err != nil {
 		return fmt.Errorf("while reading TAP: %v", err)
 	}
@@ -40,7 +41,12 @@ func init() {
 }
 
 func main() {
-	if err := run(os.Stdin, os.Stdout, *testName, *reorderDuration, *singleSuite); err != nil {
+	opts := tap.ReadOpt{
+		Name:            *testName,
+		ReorderDuration: *reorderDuration,
+		ReorderAll:      *reorderAll,
+	}
+	if err := run(os.Stdin, os.Stdout, opts, *singleSuite); err != nil {
 		glog.Fatalf("unexpected error: %v", err)
 	}
 }
