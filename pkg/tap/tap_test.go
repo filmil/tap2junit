@@ -26,11 +26,12 @@ func duration(s string) time.Duration {
 
 func TestOutput(t *testing.T) {
 	tests := []struct {
-		name     string
-		testName string
-		input    string
-		reorder  bool
-		expected Case
+		name       string
+		testName   string
+		input      string
+		reorder    bool
+		reorderAll bool
+		expected   Case
 	}{
 		{
 			name:     "Basic",
@@ -233,6 +234,29 @@ ok Unnumbered test
 			},
 		},
 		{
+			name:       "Reorder all",
+			reorder:    true,
+			reorderAll: true,
+			input: `
+1..1
+# This should be reordered
+# And this too
+ok 1 Hello
+`,
+			expected: Case{
+				Version: 12,
+				First:   ptr(1),
+				Last:    ptr(1),
+				Results: []Result{
+					{
+						Status: PASSED,
+						Raw:    "# This should be reordered\n# And this too\n 1 Hello",
+						Header: "Hello",
+					},
+				},
+			},
+		},
+		{
 			name: "Bail out",
 			input: `
 1..5
@@ -246,11 +270,37 @@ ok 3 Belated result
 				Last:    ptr(5),
 				Results: []Result{
 					{Status: UNKNOWN},
-					{Status: PASSED, Raw: " 2 Hello world # Some comment",
-						Header: "Hello world"},
+					{
+						Status: PASSED,
+						Raw:    " 2 Hello world # Some comment",
+						Header: "Hello world",
+					},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
 					{Status: UNKNOWN},
+				},
+			},
+		},
+		{
+			name:       "Reorder but with failures",
+			reorder:    true,
+			reorderAll: true,
+			input: `
+1..1
+# This should be reordered
+# And this too
+not ok 1 Hello
+`,
+			expected: Case{
+				Version: 12,
+				First:   ptr(1),
+				Last:    ptr(1),
+				Results: []Result{
+					{
+						Status: FAILED,
+						Raw:    "# This should be reordered\n# And this too\n 1 Hello",
+						Header: "Hello",
+					},
 				},
 			},
 		},
@@ -272,7 +322,12 @@ ok 3 Belated result
 					debug.PrintStack()
 				}
 			}()
-			actual, err := Read(r, test.testName, test.reorder)
+			opt := ReadOpt{
+				Name:            test.testName,
+				ReorderDuration: test.reorder,
+				ReorderAll:      test.reorderAll,
+			}
+			actual, err := Read(r, opt)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

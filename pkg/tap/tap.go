@@ -105,13 +105,28 @@ func joinNonempty(one, two string) string {
 	return strings.Join([]string{one, two}, "\n")
 }
 
+// ReadOpt is the set of options passed to configure the reader.
+type ReadOpt struct {
+	// Name is the generated test name.
+	Name string
+	// ReorderTimeout says the Duration line will be added to the next test
+	// instead of the current, to work around issue
+	// https://github.com/bats-core/bats-core/issues/187
+	ReorderDuration bool
+	// ReorderAll will reorder *all* annotation lines and attribute them to the
+	// next test, even though this is not correct TAP specification.
+	ReorderAll bool
+	// SingleSuite will make test output be a single suite.
+	SingleSuite bool
+}
+
 // Read parses the contents of i into a Result. name is a given test name.  If
 // reorder is set, the Duration line will be added to the next test instead of
 // the current, to work around issue
 // https://github.com/bats-core/bats-core/issues/187
-func Read(i io.Reader, name string, reorder bool) (Case, error) {
+func Read(i io.Reader, opt ReadOpt) (Case, error) {
 	var (
-		r  Case = Case{Version: 12, Name: name}
+		r  Case = Case{Version: 12, Name: opt.Name}
 		ps parser
 	)
 	s := bufio.NewScanner(i)
@@ -208,10 +223,10 @@ func Read(i io.Reader, name string, reorder bool) (Case, error) {
 			}
 			var fixup int
 			glog.V(2).Infof("extension: %q", line)
-			if strings.HasPrefix(line, "Duration:") {
+			if strings.HasPrefix(line, "Duration:") || opt.ReorderAll {
 				line = strings.TrimPrefix(line, "Duration:")
 				line = strings.TrimSpace(line)
-				if reorder {
+				if opt.ReorderDuration || opt.ReorderAll {
 					fixup = 1
 				}
 				glog.V(2).Infof("extension: %q, fixup: %v", line, fixup)
@@ -222,6 +237,10 @@ func Read(i io.Reader, name string, reorder bool) (Case, error) {
 				}
 				r.Results[ps.lt+fixup-1].Duration = d
 			}
+			glog.V(5).Infof(
+				"ps=%+v\n len(r.Results)=%v, r.Results=%+v\nfixup: %v\nv=%+v\nlt=%v\n\n",
+				ps, len(r.Results), r.Results, fixup, v, ps.lt,
+			)
 			r.Results[ps.lt+fixup-1].Raw = joinNonempty(r.Results[ps.lt+fixup-1].Raw, v[0])
 			glog.Infof("results: %+v", r.Results)
 			continue
