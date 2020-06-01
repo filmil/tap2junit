@@ -1,0 +1,24 @@
+name: Build
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.13', '1.14']
+    steps:
+      - name: Setup go compiler
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Mod tidy
+        run: "go mod tidy"
+      - name: Test with go ${{ matrix.go }}
+        run: "go test ./..."
