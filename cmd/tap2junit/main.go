@@ -36,11 +36,8 @@ func run(r io.Reader, w io.Writer, opts tap.ReadOpt, singleSuite bool) error {
 	return nil
 }
 
-func init() {
-	flag.Parse()
-}
-
 func main() {
+	flag.Parse()
 	opts := tap.ReadOpt{
 		Name:            *testName,
 		ReorderDuration: *reorderDuration,
