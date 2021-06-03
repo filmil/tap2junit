@@ -242,7 +242,6 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 				ps, len(r.Results), r.Results, fixup, v, ps.lt,
 			)
 			r.Results[ps.lt+fixup-1].Raw = joinNonempty(r.Results[ps.lt+fixup-1].Raw, v[0])
-			glog.Infof("results: %+v", r.Results)
 			continue
 		}
 
