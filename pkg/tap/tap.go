@@ -147,7 +147,7 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 
 		// Range is the range of the tests to run.
 		// "1..42"
-		var Range = regexp.MustCompile(`(\d+)\.\.(\d+)`)
+		var Range = regexp.MustCompile(`^(\d+)\.\.(\d+)$`)
 		if v := Range.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("range: %v", spew.Sdump(v))
 			f := toInt(v[1])
