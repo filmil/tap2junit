@@ -35,7 +35,7 @@ functionality.
 
 ```
 go get github.com/filmil/tap2junit
-go install github.com/filmil/tap2junit/...
+go install -v github.com/filmil/tap2junit/...@latest
 ```
 
 # Testing
