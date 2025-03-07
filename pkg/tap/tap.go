@@ -162,11 +162,13 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 		// OKTest is an OK test line.
 		// "ok 41 some text # TODO some comment"
 		var OKTest = regexp.MustCompile(
-			`^ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip)?(.*))?)`)
+			`^ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip))?)`)
+		var OKTestSimplified = regexp.MustCompile(
+			`^ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip))?)`)
 
 		// "42 ok Some comment"
 		// Regex analysis using https://regex101.com
-		if v := OKTest.FindStringSubmatch(t); v != nil {
+		if v := OKTestSimplified.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("ok: %v", spew.Sdump(v))
 			tiStr := v[2]
 			if tiStr != "" {
@@ -190,8 +192,10 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 		// 1: test number, optional
 		// 3: text before #
 		var NotOKTest = regexp.MustCompile(
-			`^not ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip)?(.*))?)`)
-		if v := NotOKTest.FindStringSubmatch(t); v != nil {
+			`^not ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip))?)`)
+		var NotOKTestSimplified = regexp.MustCompile(
+			`^not ok( (\d+)?(\s+)?(([^#]*))?(#\s+(TODO|todo|SKIP|skip))?)`)
+		if v := NotOKTestSimplified.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("not ok: %v", spew.Sdump(v))
 			tiStr := v[2]
 			if tiStr != "" {
@@ -212,7 +216,8 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 
 		// An annotation is attached to the "current" test.
 		var TestAnnotation = regexp.MustCompile(`^#(\s+)?(.+)?`)
-		if v := TestAnnotation.FindStringSubmatch(t); v != nil {
+		var TestAnnotationSimplified = regexp.MustCompile(`^#([^ ]+)?(.+)?`)
+		if v := TestAnnotationSimplified.FindStringSubmatch(t); v != nil {
 			glog.V(2).Infof("annotation: %v", spew.Sdump(v))
 			line := v[0]
 
@@ -242,6 +247,12 @@ func Read(i io.Reader, opt ReadOpt) (Case, error) {
 				ps, len(r.Results), r.Results, fixup, v, ps.lt,
 			)
 			r.Results[ps.lt+fixup-1].Raw = joinNonempty(r.Results[ps.lt+fixup-1].Raw, v[0])
+			continue
+		}
+		
+		var Unknow = regexp.MustCompile(`^.+$`)
+		if v := Unknow.FindStringSubmatch(t); v != nil {
+			glog.V(2).Infof("unknow line: %v", spew.Sdump(v))
 			continue
 		}
 
